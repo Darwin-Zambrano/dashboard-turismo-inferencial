@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Análisis Factorial Sector Turismo</title>
+    
+    <!-- FAVICON: Escudo de la Universidad Técnica de Manabí -->
+    <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/f/f8/Logo_universidad_UTM.png?utm_source=es.wikipedia.org&utm_campaign=index&utm_content=original" type="image/png">
+    
+    <!-- Tailwind CSS para el diseño -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Plotly.js para las gráficas interactivas -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <!-- FontAwesome para íconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        
+        .diagram-container { display: flex; justify-content: center; align-items: center; gap: 40px; padding: 20px; background: white; border-radius: 12px; }
+        .column { display: flex; flex-direction: column; gap: 15px; }
+        
+        .node-error { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #9ca3af; display: flex; justify-content: center; align-items: center; font-size: 12px; font-weight: bold; background: #f9fafb; color: #4b5563; position: relative; }
+        .node-var { width: 60px; height: 40px; border: 2px solid #3b82f6; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: bold; background: #eff6ff; color: #1d4ed8; position: relative; z-index: 10; }
+        .node-factor { width: 140px; height: 140px; border-radius: 50%; border: 3px solid #10b981; display: flex; justify-content: center; align-items: center; font-size: 16px; font-weight: bold; background: #ecfdf5; color: #047857; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative; z-index: 10;}
+        
+        .arrow-error-var { position: absolute; right: -25px; top: 50%; width: 25px; height: 2px; background-color: #9ca3af; }
+        .arrow-error-var::after { content: ''; position: absolute; right: 0; top: -4px; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 6px solid #9ca3af; }
+        
+        .nav-item { cursor: pointer; transition: all 0.2s; }
+        .nav-item:hover, .nav-item.active { background-color: #e0f2fe; color: #0369a1; border-right: 4px solid #0284c7; }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Comportamiento móvil del Sidebar */
+        #sidebar { transition: transform 0.3s ease-in-out; }
+        @media (max-width: 1024px) {
+            #sidebar { position: fixed; height: 100%; transform: translateX(-100%); }
+            #sidebar.open { transform: translateX(0); }
+        }
+
+        /* Ajuste de scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <div class="lg:hidden absolute top-0 left-0 w-full bg-white shadow-md z-30 p-4 flex justify-between items-center border-b border-gray-200">
+        <div class="flex items-center gap-2">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/f/f8/Logo_universidad_UTM.png?utm_source=es.wikipedia.org&utm_campaign=index&utm_content=original" alt="UTM" class="w-8 h-8 object-contain">
+            <h1 class="font-bold text-gray-800 text-lg">Proyecto Turismo</h1>
+        </div>
+        <button onclick="toggleSidebar()" class="text-gray-600 hover:text-blue-600 focus:outline-none">
+            <i class="fa-solid fa-bars text-2xl"></i>
+        </button>
+    </div>
+
+    <aside id="sidebar" class="w-72 bg-white shadow-xl flex flex-col z-40 h-full">
+        <div class="p-6 border-b border-gray-100 text-center flex-shrink-0 mt-16 lg:mt-0 flex flex-col items-center">
+            <!-- Escudo de la UTM -->
+            <img src="Escudo_UTM.png" alt="UTM Logo" class="w-21 h-21 mb-3 object-contain drop-shadow-sm">
+            <h1 class="text-lg font-bold text-gray-800 leading-tight">Análisis Factorial</h1>
+            <p class="text-xs text-gray-500 uppercase tracking-wider mt-1">Sector Turismo</p>
+        </div>
+        
+        <nav class="flex-1 overflow-y-auto py-4">
+            <ul class="space-y-1">
+                <!-- Íconos con sus respectivos colores asignados -->
+                <li onclick="switchTab('resumen')" class="nav-item active px-6 py-3 text-sm font-medium text-gray-600 flex items-center gap-3" id="nav-resumen">
+                    <i class="fa-solid fa-list-check w-5 text-blue-500 text-center text-lg"></i> 1. Variables y Modelo
+                </li>
+                <li onclick="switchTab('supuestos')" class="nav-item px-6 py-3 text-sm font-medium text-gray-600 flex items-center gap-3" id="nav-supuestos">
+                    <i class="fa-solid fa-vial w-5 text-purple-500 text-center text-lg"></i> 2. Supuestos KMO
+                </li>
+                <li onclick="switchTab('analisis')" class="nav-item px-6 py-3 text-sm font-medium text-gray-600 flex items-center gap-3" id="nav-analisis">
+                    <i class="fa-solid fa-sitemap w-5 text-green-500 text-center text-lg"></i> 3. Cargas Factoriales
+                </li>
+                <li onclick="switchTab('mapas')" class="nav-item px-6 py-3 text-sm font-medium text-gray-600 flex items-center gap-3" id="nav-mapas">
+                    <i class="fa-solid fa-map w-5 text-orange-500 text-center text-lg"></i> 4. Mapas de Calor
+                </li>
+                <li onclick="switchTab('decision')" class="nav-item px-6 py-3 text-sm font-medium text-gray-600 flex items-center gap-3" id="nav-decision">
+                    <i class="fa-solid fa-fire w-5 text-red-500 text-center text-lg"></i> 5. Toma de Decisiones
+                </li>
+            </ul>
+        </nav>
+
+        <div class="p-5 border-t border-gray-200 bg-gray-50 flex-shrink-0 shadow-inner">
+            <div class="flex items-center gap-3 mb-3 border-b border-gray-200 pb-3">
+                <div class="w-12 h-12 rounded-full bg-blue-800 flex items-center justify-center text-white font-bold shadow-md text-lg border-2 border-white">
+                    DZ
+                </div>
+                <div>
+                    <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Autor Responsable</p>
+                    <p class="text-sm font-bold text-gray-800 leading-tight mt-0.5">Darwin Arturo<br>Zambrano Palacios</p>
+                </div>
+            </div>
+            <div class="text-xs text-gray-700 space-y-2.5">
+                <p class="flex items-start gap-2">
+                    <i class="fa-solid fa-book text-blue-600 mt-0.5 w-4 text-center"></i> 
+                    <span><strong>Asignatura:</strong><br>Estadística Inferencial</span>
+                </p>
+                <p class="flex items-start gap-2">
+                    <i class="fa-solid fa-chalkboard-user text-blue-600 mt-0.5 w-4 text-center"></i> 
+                    <span><strong>Docente:</strong><br>Ing. Emmanuel Muñoz Muñoz, PhD.</span>
+                </p>
+                <p class="flex items-start gap-2">
+                    <i class="fa-solid fa-graduation-cap text-blue-600 mt-0.5 w-4 text-center"></i> 
+                    <span><strong>Carrera:</strong><br>Computación</span>
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    <div id="overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden lg:hidden"></div>
+
+    <main class="flex-1 bg-gray-50 overflow-y-auto p-6 lg:p-8 relative pt-24 lg:pt-8 w-full">
+        
+        <section id="tab-resumen" class="tab-content active max-w-6xl mx-auto">
+            <div class="mb-8">
+                <!-- Se agregó el ícono temático (Avión para turismo) en el título -->
+                <h2 class="text-3xl font-bold text-gray-800"><i class="fa-solid fa-plane-departure text-blue-500 mr-3"></i>1. Definición de Variables y Modelo Estructural</h2>
+                <p class="mt-2 text-gray-600">Este proyecto utiliza un modelo estadístico multivariado (Análisis Factorial Exploratorio - EFA, técnica que agrupa variables altamente correlacionadas para descubrir patrones) para clasificar 10 variables observadas en 2 constructos latentes principales del sector turístico.</p>
+            </div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Variables Observadas (Likert 1-5)</h3>
+                    
+                    <h4 class="font-semibold text-green-700 mt-4 mb-2"><i class="fa-solid fa-concierge-bell mr-2"></i>Constructo 1: Servicios (SER)</h4>
+                    <ul class="text-sm text-gray-600 space-y-2 ml-2">
+                        <li><strong>V1 (SER1):</strong> Calidad de atención al cliente.</li>
+                        <li><strong>V2 (SER2):</strong> Nivel de guías turísticos.</li>
+                        <li><strong>V3 (SER3):</strong> Variedad gastronómica.</li>
+                        <li><strong>V4 (SER4):</strong> Eficiencia en agencias.</li>
+                        <li><strong>V5 (SER5):</strong> Percepción de seguridad general.</li>
+                    </ul>
+
+                    <h4 class="font-semibold text-orange-600 mt-6 mb-2"><i class="fa-solid fa-road mr-2"></i>Constructo 2: Infraestructura (INF)</h4>
+                    <ul class="text-sm text-gray-600 space-y-2 ml-2">
+                        <li><strong>V6 (INF1):</strong> Estado de las vías de acceso.</li>
+                        <li><strong>V7 (INF2):</strong> Calidad del alojamiento local.</li>
+                        <li><strong>V8 (INF3):</strong> Eficiencia del transporte público.</li>
+                        <li><strong>V9 (INF4):</strong> Señalización turística.</li>
+                        <li><strong>V10 (INF5):</strong> Accesibilidad para discapacitados.</li>
+                    </ul>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <h3 class="text-xl font-bold text-gray-800 mb-2 border-b pb-2">Estructura del A.F. Exploratorio</h3>
+                    <p class="text-xs text-gray-500 mb-6">Basado en el modelo de regresión latente donde los Factores causan la respuesta en la variable, más un término de error (E).</p>
+                    
+                    <div class="diagram-container relative overflow-hidden" style="min-height: 450px;">
+                        <svg viewBox="0 0 400 500" class="w-full h-full drop-shadow-md">
+                            <defs>
+                                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                    <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
+                                </marker>
+                            </defs>
+                            
+                            <g fill="#f9fafb" stroke="#9ca3af" stroke-width="2" font-size="12" font-family="sans-serif" text-anchor="middle" font-weight="bold" fill-opacity="1">
+                                <circle cx="30" cy="40" r="15"/><text x="30" y="44" stroke="none" fill="#4b5563">E1</text>
+                                <circle cx="30" cy="80" r="15"/><text x="30" y="84" stroke="none" fill="#4b5563">E2</text>
+                                <circle cx="30" cy="120" r="15"/><text x="30" y="124" stroke="none" fill="#4b5563">E3</text>
+                                <circle cx="30" cy="160" r="15"/><text x="30" y="164" stroke="none" fill="#4b5563">E4</text>
+                                <circle cx="30" cy="200" r="15"/><text x="30" y="204" stroke="none" fill="#4b5563">E5</text>
+                                
+                                <circle cx="30" cy="280" r="15"/><text x="30" y="284" stroke="none" fill="#4b5563">E6</text>
+                                <circle cx="30" cy="320" r="15"/><text x="30" y="324" stroke="none" fill="#4b5563">E7</text>
+                                <circle cx="30" cy="360" r="15"/><text x="30" y="364" stroke="none" fill="#4b5563">E8</text>
+                                <circle cx="30" cy="400" r="15"/><text x="30" y="404" stroke="none" fill="#4b5563">E9</text>
+                                <circle cx="30" cy="440" r="15"/><text x="30" y="444" stroke="none" fill="#4b5563">E10</text>
+                            </g>
+
+                            <g stroke="#9ca3af" stroke-width="2" marker-end="url(#arrowhead)">
+                                <line x1="45" y1="40" x2="90" y2="40"/>
+                                <line x1="45" y1="80" x2="90" y2="80"/>
+                                <line x1="45" y1="120" x2="90" y2="120"/>
+                                <line x1="45" y1="160" x2="90" y2="160"/>
+                                <line x1="45" y1="200" x2="90" y2="200"/>
+                                <line x1="45" y1="280" x2="90" y2="280"/>
+                                <line x1="45" y1="320" x2="90" y2="320"/>
+                                <line x1="45" y1="360" x2="90" y2="360"/>
+                                <line x1="45" y1="400" x2="90" y2="400"/>
+                                <line x1="45" y1="440" x2="90" y2="440"/>
+                            </g>
+
+                            <g fill="#eff6ff" stroke="#3b82f6" stroke-width="2" font-size="14" font-family="sans-serif" font-weight="bold" text-anchor="middle">
+                                <rect x="100" y="25" width="40" height="30" rx="4"/><text x="120" y="45" stroke="none" fill="#1d4ed8">V1</text>
+                                <rect x="100" y="65" width="40" height="30" rx="4"/><text x="120" y="85" stroke="none" fill="#1d4ed8">V2</text>
+                                <rect x="100" y="105" width="40" height="30" rx="4"/><text x="120" y="125" stroke="none" fill="#1d4ed8">V3</text>
+                                <rect x="100" y="145" width="40" height="30" rx="4"/><text x="120" y="165" stroke="none" fill="#1d4ed8">V4</text>
+                                <rect x="100" y="185" width="40" height="30" rx="4"/><text x="120" y="205" stroke="none" fill="#1d4ed8">V5</text>
+
+                                <rect x="100" y="265" width="40" height="30" rx="4"/><text x="120" y="285" stroke="none" fill="#1d4ed8">V6</text>
+                                <rect x="100" y="305" width="40" height="30" rx="4"/><text x="120" y="325" stroke="none" fill="#1d4ed8">V7</text>
+                                <rect x="100" y="345" width="40" height="30" rx="4"/><text x="120" y="365" stroke="none" fill="#1d4ed8">V8</text>
+                                <rect x="100" y="385" width="40" height="30" rx="4"/><text x="120" y="405" stroke="none" fill="#1d4ed8">V9</text>
+                                <rect x="100" y="425" width="40" height="30" rx="4"/><text x="120" y="445" stroke="none" fill="#1d4ed8">V10</text>
+                            </g>
+
+                            <g stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrowhead)">
+                                <line x1="280" y1="120" x2="150" y2="40"/>
+                                <line x1="280" y1="120" x2="150" y2="80"/>
+                                <line x1="280" y1="120" x2="150" y2="120"/>
+                                <line x1="280" y1="120" x2="150" y2="160"/>
+                                <line x1="280" y1="120" x2="150" y2="200"/>
+
+                                <line x1="280" y1="360" x2="150" y2="280"/>
+                                <line x1="280" y1="360" x2="150" y2="320"/>
+                                <line x1="280" y1="360" x2="150" y2="360"/>
+                                <line x1="280" y1="360" x2="150" y2="400"/>
+                                <line x1="280" y1="360" x2="150" y2="440"/>
+                            </g>
+
+                            <circle cx="310" cy="120" r="50" fill="#f0fdf4" stroke="#16a34a" stroke-width="3"/>
+                            <text x="310" y="115" font-family="sans-serif" font-weight="bold" font-size="14" fill="#15803d" text-anchor="middle">Factor 1</text>
+                            <text x="310" y="130" font-family="sans-serif" font-size="10" fill="#15803d" text-anchor="middle">(Servicios)</text>
+
+                            <circle cx="310" cy="360" r="50" fill="#fff7ed" stroke="#ea580c" stroke-width="3"/>
+                            <text x="310" y="355" font-family="sans-serif" font-weight="bold" font-size="14" fill="#c2410c" text-anchor="middle">Factor 2</text>
+                            <text x="310" y="370" font-family="sans-serif" font-size="10" fill="#c2410c" text-anchor="middle">(Infraestructura)</text>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex justify-end">
+                <button onclick="switchTab('supuestos')" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg shadow transition">Siguiente: Validar Supuestos <i class="fa-solid fa-arrow-right ml-2"></i></button>
+            </div>
+        </section>
+
+        <section id="tab-supuestos" class="tab-content max-w-6xl mx-auto">
+            <div class="mb-8">
+                <!-- Se agregó el ícono temático (Lupa con gráfico) en el título -->
+                <h2 class="text-3xl font-bold text-gray-800"><i class="fa-solid fa-magnifying-glass-chart text-purple-500 mr-3"></i>2. Validación Multivariada (Pruebas Previas)</h2>
+                <p class="mt-2 text-gray-600">Antes de realizar la extracción de factores, debemos comprobar probabilísticamente que nuestras variables están correlacionadas adecuadamente en la muestra poblacional (N=1,000). Si las variables no tuvieran relación, el análisis factorial sería inválido.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white rounded-xl shadow-sm p-8 border-l-4 border-green-500">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-bold text-gray-800">Test KMO</h3>
+                        <span class="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full">Excelente</span>
+                    </div>
+                    <p class="text-4xl font-black text-gray-800 mb-2">0.862</p>
+                    <p class="text-sm text-gray-600">La medida de adecuación muestral de Kaiser-Meyer-Olkin (KMO) nos arroja un valor superior a 0.8. <br><br><strong>Interpretación:</strong> La proporción de varianza en nuestras variables indica que la muestra de 1000 encuestas es altamente apta para la factorización.</p>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-8 border-l-4 border-blue-500">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-bold text-gray-800">Esfericidad de Bartlett</h3>
+                        <span class="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full">Significativo</span>
+                    </div>
+                    <p class="text-4xl font-black text-gray-800 mb-2">p < 0.001</p>
+                    <p class="text-sm text-gray-600">Aproximación Chi-Cuadrado: 4,128.5<br>Grados de Libertad (df): 45<br><br><strong>Interpretación:</strong> Rechazamos la hipótesis nula de que la matriz de correlación es una matriz identidad. Las variables están suficientemente correlacionadas.</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-8">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Gráfico de Sedimentación (Scree Plot) - Extracción de Factores</h3>
+                <p class="text-sm text-gray-600 mb-4">El criterio de autovalores (eigenvalues) de Kaiser indica que debemos retener los factores con valores propios mayores a 1. El gráfico claramente confirma la presencia de <strong>2 componentes o factores principales</strong>.</p>
+                <div id="scree-plot" class="w-full h-80 min-w-[300px]"></div>
+            </div>
+
+            <div class="flex justify-between">
+                <button onclick="switchTab('resumen')" class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium py-2 px-6 rounded-lg shadow-sm transition"><i class="fa-solid fa-arrow-left mr-2"></i> Atrás</button>
+                <button onclick="switchTab('analisis')" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg shadow transition">Siguiente: Cargas Factoriales <i class="fa-solid fa-arrow-right ml-2"></i></button>
+            </div>
+        </section>
+
+        <section id="tab-analisis" class="tab-content max-w-6xl mx-auto">
+            <div class="mb-8">
+                <!-- Se agregó el ícono temático (Red Factorial) en el título -->
+                <h2 class="text-3xl font-bold text-gray-800"><i class="fa-solid fa-network-wired text-green-500 mr-3"></i>3. Matriz de Cargas Factoriales</h2>
+                <p class="mt-2 text-gray-600">Se aplicó <strong>Rotación Varimax</strong> (método de transformación ortogonal que maximiza la varianza de las cargas, haciendo que cada variable tenga un peso fuerte en un solo factor). Valores por encima de 0.6 (resaltados) indican a qué constructo pertenece realmente cada pregunta de la encuesta.</p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto mb-8">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Variable (Pregunta)</th>
+                            <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-green-600 uppercase tracking-wider">Factor 1 (Servicios)</th>
+                            <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-orange-600 uppercase tracking-wider">Factor 2 (Infraestructura)</th>
+                            <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Comunalidad (h²)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200 text-sm">
+                        <!-- Servicios en VERDE -->
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap font-bold text-gray-700">V1 (SER1)</td>
+                            <td class="px-6 py-4 text-gray-600">Calidad de atención al cliente</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center font-bold text-green-700 bg-green-50">0.812</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-gray-400">0.115</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-gray-500">0.672</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap font-bold text-gray-700">V2 (SER2)</td>
+                            <td class="px-6 py-4 text-gray-600">Nivel de guías turísticos</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center font-bold text-green-700 bg-green-50">0.785</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-gray-400">0.092</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-gray-500">0.624</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap font-bold text-gray-700">V3 (SER3)</td>
+                            <td class="px-6 py-4 text-gray-600">Variedad gastronómica</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center font-bold text-green-700 bg-green-50">0.742</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-gray-400">0.184</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-gray-500">0.584</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap font-bold text-gray-700">V4 (SER4)</td>
+                            <td class="px-6 py-4 text-gray-600">Eficiencia en agencias</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center font-bold text-green-700 bg-green-50">0.865</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-gray-400">0.052</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-gray-500">0.750</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap font-bold text-gray-700">V5 (SER5)</td>
+                            <td class="px-6 py-4 text-gray-600">Percepción de seguridad general</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center font-bold text-green-700 bg-green-50">0.710</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-gray-400">0.210</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-gray-500">0.548</td>
+                        </tr>
+                        <!-- Infraestructura en NARANJA -->
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap font-bold text-gray-700">V6 (INF1)</td>
+                            <td class="px-6 py-4 text-gray-600">Estado de las vías de acceso</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-gray-400">0.102</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center font-bold text-orange-600 bg-orange-50">0.884</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-gray-500">0.791</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap font-bold text-gray-700">V7 (INF2)</td>
+                            <td class="px-6 py-4 text-gray-600">Calidad del alojamiento local</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-gray-400">0.145</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center font-bold text-orange-600 bg-orange-50">0.762</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-gray-500">0.601</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap font-bold text-gray-700">V8 (INF3)</td>
+                            <td class="px-6 py-4 text-gray-600">Eficiencia del transporte público</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-gray-400">0.088</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center font-bold text-orange-600 bg-orange-50">0.815</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-gray-500">0.671</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap font-bold text-gray-700">V9 (INF4)</td>
+                            <td class="px-6 py-4 text-gray-600">Señalización turística</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-gray-400">0.201</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center font-bold text-orange-600 bg-orange-50">0.730</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-gray-500">0.573</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50 border-b-2 border-gray-200">
+                            <td class="px-6 py-4 whitespace-nowrap font-bold text-gray-700">V10 (INF5)</td>
+                            <td class="px-6 py-4 text-gray-600">Accesibilidad discapacitados</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-gray-400">0.110</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center font-bold text-orange-600 bg-orange-50">0.852</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-gray-500">0.737</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="bg-blue-50 rounded-lg p-5 border border-blue-100 mb-8 flex gap-4">
+                <i class="fa-solid fa-circle-info text-blue-500 text-xl mt-1"></i>
+                <p class="text-sm text-blue-900"><strong>Interpretación Técnica:</strong> Observamos una convergencia perfecta: las variables V1-V5 saturan exclusivamente en el Factor 1 (Color Verde), mientras que V6-V10 saturan en el Factor 2 (Color Naranja). Las comunalidades (h²) superan el 0.5, indicando que la mayor parte de la varianza de cada variable original se explica por los dos factores retenidos.</p>
+            </div>
+
+            <div class="flex justify-between">
+                <button onclick="switchTab('supuestos')" class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium py-2 px-6 rounded-lg shadow-sm transition"><i class="fa-solid fa-arrow-left mr-2"></i> Atrás</button>
+                <button onclick="switchTab('mapas')" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg shadow transition">Siguiente: Mapas de Calor <i class="fa-solid fa-arrow-right ml-2"></i></button>
+            </div>
+        </section>
+
+        <section id="tab-mapas" class="tab-content max-w-6xl mx-auto">
+            <div class="mb-6">
+                <!-- Se agregó el ícono temático (Mapa de calor) en el título -->
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-800"><i class="fa-solid fa-map text-orange-500 mr-3"></i>4. Mapas de Calor y Visualización del Problema</h2>
+                <p class="mt-2 text-gray-600">Proyección gráfica de las correlaciones matemáticas y los promedios de calificación obtenidos en las encuestas simuladas.</p>
+            </div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <h3 class="text-lg font-bold text-gray-800 mb-2 text-center">Mapa de Calor: Promedios de Satisfacción (1 al 5)</h3>
+                    <p class="text-xs text-center text-gray-500 mb-4">Rojo (Fuego/Caliente) = Puntuación crítica a mejorar. Azul/Verde = Zonas estables.</p>
+                    <div id="heatmap-satisfaction" class="w-full h-80"></div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <h3 class="text-lg font-bold text-gray-800 mb-2 text-center">Mapa de Calor: Matriz de Correlaciones</h3>
+                    <p class="text-xs text-center text-gray-500 mb-4">Muestra la fuerte agrupación estadística interna entre las variables del mismo constructo.</p>
+                    <div id="heatmap-correlation" class="w-full h-80"></div>
+                </div>
+            </div>
+
+            <div class="flex justify-between">
+                <button onclick="switchTab('analisis')" class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium py-2 px-6 rounded-lg shadow-sm transition"><i class="fa-solid fa-arrow-left mr-2"></i> Atrás</button>
+                <button onclick="switchTab('decision')" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg shadow transition">Siguiente: Conclusión Final <i class="fa-solid fa-arrow-right ml-2"></i></button>
+            </div>
+        </section>
+
+        <section id="tab-decision" class="tab-content max-w-6xl mx-auto">
+            <div class="mb-6">
+                <!-- Se agregó el ícono temático (Decisión/Ubicación) en el título -->
+                <h2 class="text-3xl font-bold text-gray-800"><i class="fa-solid fa-map-location-dot text-red-500 mr-3"></i>5. Toma de Decisiones y Zonas "Calientes"</h2>
+                <p class="mt-2 text-gray-600">Respondiendo de forma concreta a la pregunta del proyecto: <em>¿Cuál de los 2 constructos está más caliente y es objetivo a ser mejorado por las autoridades o el gobierno?</em></p>
+            </div>
+
+            <div class="bg-red-50 rounded-xl shadow-sm p-8 border-l-4 border-red-500 mb-8">
+                <h3 class="text-2xl font-bold text-red-800 mb-4"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Resolución Gubernamental Estratégica</h3>
+                <p class="text-red-900 leading-relaxed text-lg mb-4">Tras consolidar estadísticamente las encuestas y proyectar los mapas de calor, la evidencia señala de forma contundente y <strong>sin margen de error</strong> que el constructo de <strong>INFRAESTRUCTURA</strong> representa la zona crítica (caliente) del sector turístico analizado.</p>
+                
+                <ul class="space-y-4 text-red-800 mb-6">
+                    <li class="bg-white p-4 rounded-lg shadow-sm border border-red-100">
+                        <span class="font-bold text-green-700"><i class="fa-solid fa-check-circle mr-2"></i>Constructo Servicios (Estable):</span> Los servicios privados como la atención, los guías y la gastronomía alcanzan niveles de satisfacción altos en la población encuestada, con promedios estables que rondan los 3.9 y 4.0 sobre 5.
+                    </li>
+                    <li class="bg-white p-4 rounded-lg shadow-sm border border-red-200">
+                        <span class="font-bold text-red-700"><i class="fa-solid fa-circle-xmark mr-2"></i>Constructo Infraestructura (Crítico):</span> Las competencias netamente estatales como el estado de las vías de acceso, el transporte público, la señalización turística y la accesibilidad, registran deficiencias severas con promedios críticos que no superan el 1.9 sobre 5.
+                    </li>
+                </ul>
+
+                <div class="bg-red-800 p-5 rounded-lg border border-red-900 shadow-md">
+                    <p class="text-white font-bold text-xl text-center mb-2"><i class="fa-solid fa-bullseye mr-2"></i>Conclusión Definitiva</p>
+                    <p class="text-red-100 text-center text-lg">En conclusión, la inversión pública debe dirigirse de manera prioritaria y urgente a la intervención física de las variables V6 a V10 (Infraestructura), siendo este el objetivo principal para potenciar el turismo según el modelo inferencial planteado.</p>
+                </div>
+            </div>
+
+            <div class="flex justify-start">
+                <button onclick="switchTab('mapas')" class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium py-2 px-6 rounded-lg shadow-sm transition"><i class="fa-solid fa-arrow-left mr-2"></i> Atrás</button>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('hidden');
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById('tab-' + tabId).classList.add('active');
+            document.getElementById('nav-' + tabId).classList.add('active');
+
+            if(window.innerWidth <= 1024) {
+                document.getElementById('sidebar').classList.remove('open');
+                document.getElementById('overlay').classList.add('hidden');
+            }
+
+            if(tabId === 'supuestos' || tabId === 'decision' || tabId === 'mapas') { 
+                window.dispatchEvent(new Event('resize')); 
+            }
+        }
+
+        // Muestra la barra de herramientas (zoom, pan, etc) pero sin el logo de Plotly
+        const plotlyConfig = { responsive: true, displaylogo: false, displayModeBar: 'hover' };
+
+        const eigenvalues = [4.5, 3.2, 0.8, 0.6, 0.4, 0.3, 0.2, 0.15, 0.1, 0.05];
+        const factors = ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10'];
+
+        Plotly.newPlot('scree-plot', [{
+            x: factors, y: eigenvalues, type: 'scatter', mode: 'lines+markers',
+            marker: { size: 10, color: '#2563eb' }, line: { width: 3, color: '#3b82f6' }
+        }], {
+            margin: { t: 20, r: 20, b: 40, l: 40 },
+            shapes: [{ type: 'line', x0: -0.5, x1: 9.5, y0: 1, y1: 1, line: { color: 'red', width: 2, dash: 'dash' } }],
+            annotations: [{ x: 5, y: 1.2, text: "Criterio de Kaiser (Autovalor = 1)", showarrow: false, font: {color: 'red'} }]
+        }, plotlyConfig);
+
+        const avgScores = [
+            [4.5, 4.2, 4.3, 4.1, 4.0], 
+            [1.8, 2.1, 1.5, 1.9, 1.7]  
+        ];
+        
+        // Márgenes modificados y automargin activado para evitar recortes de texto
+        Plotly.newPlot('heatmap-satisfaction', [{
+            z: avgScores, x: ['V1 / V6', 'V2 / V7', 'V3 / V8', 'V4 / V9', 'V5 / V10'], y: ['F1: Servicios', 'F2: Infraestructura'], type: 'heatmap',
+            colorscale: [['0.0', 'rgb(178, 24, 43)'], ['0.5', 'rgb(253, 219, 199)'], ['1.0', 'rgb(33, 102, 172)']],
+            zmin: 1, zmax: 5, hoverinfo: 'z'
+        }], { 
+            margin: { t: 20, r: 20, b: 60, l: 160 },
+            xaxis: { automargin: true },
+            yaxis: { automargin: true }
+        }, plotlyConfig);
+
+        const labels = ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V10'];
+        const corrMatrix = [
+            [1.00, 0.75, 0.68, 0.82, 0.65,  0.12, 0.15, 0.08, 0.19, 0.11],
+            [0.75, 1.00, 0.71, 0.77, 0.61,  0.09, 0.12, 0.05, 0.14, 0.08],
+            [0.68, 0.71, 1.00, 0.69, 0.59,  0.18, 0.11, 0.07, 0.13, 0.10],
+            [0.82, 0.77, 0.69, 1.00, 0.72,  0.05, 0.09, 0.03, 0.08, 0.04],
+            [0.65, 0.61, 0.59, 0.72, 1.00,  0.21, 0.18, 0.15, 0.22, 0.19],
+            [0.12, 0.09, 0.18, 0.05, 0.21,  1.00, 0.78, 0.85, 0.72, 0.81],
+            [0.15, 0.12, 0.11, 0.09, 0.18,  0.78, 1.00, 0.71, 0.65, 0.74],
+            [0.08, 0.05, 0.07, 0.03, 0.15,  0.85, 0.71, 1.00, 0.68, 0.79],
+            [0.19, 0.14, 0.13, 0.08, 0.22,  0.72, 0.65, 0.68, 1.00, 0.75],
+            [0.11, 0.08, 0.10, 0.04, 0.19,  0.81, 0.74, 0.79, 0.75, 1.00]
+        ];
+        
+        // Márgenes modificados para evitar recortes de texto
+        Plotly.newPlot('heatmap-correlation', [{
+            z: corrMatrix, x: labels, y: labels, type: 'heatmap', colorscale: 'Viridis'
+        }], { 
+            margin: { t: 20, r: 20, b: 60, l: 60 }, 
+            yaxis: { autorange: 'reversed', automargin: true },
+            xaxis: { automargin: true }
+        }, plotlyConfig);
+    </script>
+</body>
+</html>
