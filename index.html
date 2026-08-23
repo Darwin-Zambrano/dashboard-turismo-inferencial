@@ -72,21 +72,24 @@
         
         <nav class="flex-1 overflow-y-auto py-4">
             <ul class="space-y-1">
-                <!-- Íconos con sus respectivos colores asignados -->
                 <li onclick="switchTab('resumen')" class="nav-item active px-6 py-3 text-sm font-medium text-gray-600 flex items-center gap-3" id="nav-resumen">
                     <i class="fa-solid fa-list-check w-5 text-blue-500 text-center text-lg"></i> 1. Variables y Modelo
                 </li>
+                <!-- Pestaña nueva agregada -->
+                <li onclick="switchTab('encuesta')" class="nav-item px-6 py-3 text-sm font-medium text-gray-600 flex items-center gap-3" id="nav-encuesta">
+                    <i class="fa-solid fa-clipboard-question w-5 text-teal-500 text-center text-lg"></i> 2. Instrumento (Encuesta)
+                </li>
                 <li onclick="switchTab('supuestos')" class="nav-item px-6 py-3 text-sm font-medium text-gray-600 flex items-center gap-3" id="nav-supuestos">
-                    <i class="fa-solid fa-vial w-5 text-purple-500 text-center text-lg"></i> 2. Supuestos KMO
+                    <i class="fa-solid fa-vial w-5 text-purple-500 text-center text-lg"></i> 3. Supuestos KMO
                 </li>
                 <li onclick="switchTab('analisis')" class="nav-item px-6 py-3 text-sm font-medium text-gray-600 flex items-center gap-3" id="nav-analisis">
-                    <i class="fa-solid fa-sitemap w-5 text-green-500 text-center text-lg"></i> 3. Cargas Factoriales
+                    <i class="fa-solid fa-sitemap w-5 text-green-500 text-center text-lg"></i> 4. Cargas Factoriales
                 </li>
                 <li onclick="switchTab('mapas')" class="nav-item px-6 py-3 text-sm font-medium text-gray-600 flex items-center gap-3" id="nav-mapas">
-                    <i class="fa-solid fa-map w-5 text-orange-500 text-center text-lg"></i> 4. Mapas de Calor
+                    <i class="fa-solid fa-map w-5 text-orange-500 text-center text-lg"></i> 5. Mapas de Calor
                 </li>
                 <li onclick="switchTab('decision')" class="nav-item px-6 py-3 text-sm font-medium text-gray-600 flex items-center gap-3" id="nav-decision">
-                    <i class="fa-solid fa-fire w-5 text-red-500 text-center text-lg"></i> 5. Toma de Decisiones
+                    <i class="fa-solid fa-fire w-5 text-red-500 text-center text-lg"></i> 6. Toma de Decisiones
                 </li>
             </ul>
         </nav>
@@ -232,10 +235,81 @@
             </div>
             
             <div class="flex justify-end">
-                <button onclick="switchTab('supuestos')" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg shadow transition">Siguiente: Validar Supuestos <i class="fa-solid fa-arrow-right ml-2"></i></button>
+                <button onclick="switchTab('encuesta')" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg shadow transition">Siguiente: Cuestionario <i class="fa-solid fa-arrow-right ml-2"></i></button>
             </div>
         </section>
 
+        <section id="tab-encuesta" class="tab-content max-w-6xl mx-auto">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-800"><i class="fa-solid fa-clipboard-question text-teal-500 mr-3"></i>2. Instrumento de Recolección (Encuesta)</h2>
+                <p class="mt-2 text-gray-600">A continuación, se detalla el cuestionario aplicado en la simulación de las 1,000 encuestas. Cada pregunta fue estructurada para ser medida mediante una escala Likert de 5 puntos (1 = Muy Insatisfecho, 5 = Muy Satisfecho).</p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto mb-8">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Constructo Latente</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Variable</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pregunta de la Encuesta</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200 text-sm">
+                        <!-- Servicios -->
+                        <tr class="hover:bg-green-50 transition-colors">
+                            <td class="px-6 py-4 font-bold text-green-700 bg-green-50/50 border-r border-gray-100 align-top" rowspan="5">Servicios (SER)</td>
+                            <td class="px-6 py-4 whitespace-nowrap font-semibold text-gray-700">V1 (SER1)</td>
+                            <td class="px-6 py-4 text-gray-600">¿Cómo califica la calidad de la atención al cliente brindada por los prestadores de servicios turísticos locales?</td>
+                        </tr>
+                        <tr class="hover:bg-green-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap font-semibold text-gray-700">V2 (SER2)</td>
+                            <td class="px-6 py-4 text-gray-600">¿Cómo evalúa el nivel de conocimiento y profesionalismo de los guías turísticos de la zona?</td>
+                        </tr>
+                        <tr class="hover:bg-green-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap font-semibold text-gray-700">V3 (SER3)</td>
+                            <td class="px-6 py-4 text-gray-600">¿Qué tan satisfecho está con la variedad y calidad de la oferta gastronómica del destino?</td>
+                        </tr>
+                        <tr class="hover:bg-green-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap font-semibold text-gray-700">V4 (SER4)</td>
+                            <td class="px-6 py-4 text-gray-600">¿Cómo califica la eficiencia y facilidad para contratar servicios en las agencias de viaje locales?</td>
+                        </tr>
+                        <tr class="hover:bg-green-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap font-semibold text-gray-700">V5 (SER5)</td>
+                            <td class="px-6 py-4 text-gray-600">¿Cuál es su percepción general de seguridad al utilizar los servicios turísticos en la zona?</td>
+                        </tr>
+                        
+                        <!-- Infraestructura -->
+                        <tr class="hover:bg-orange-50 transition-colors border-t-2 border-gray-200">
+                            <td class="px-6 py-4 font-bold text-orange-700 bg-orange-50/50 border-r border-gray-100 align-top" rowspan="5">Infraestructura (INF)</td>
+                            <td class="px-6 py-4 whitespace-nowrap font-semibold text-gray-700">V6 (INF1)</td>
+                            <td class="px-6 py-4 text-gray-600">¿Cómo califica el estado actual de las carreteras y vías de acceso al destino turístico?</td>
+                        </tr>
+                        <tr class="hover:bg-orange-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap font-semibold text-gray-700">V7 (INF2)</td>
+                            <td class="px-6 py-4 text-gray-600">¿Cómo evalúa las condiciones de infraestructura física de los alojamientos locales (hoteles, hostales)?</td>
+                        </tr>
+                        <tr class="hover:bg-orange-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap font-semibold text-gray-700">V8 (INF3)</td>
+                            <td class="px-6 py-4 text-gray-600">¿Cómo califica la disponibilidad y el estado físico de las unidades de transporte público?</td>
+                        </tr>
+                        <tr class="hover:bg-orange-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap font-semibold text-gray-700">V9 (INF4)</td>
+                            <td class="px-6 py-4 text-gray-600">¿Cómo evalúa la claridad, visibilidad y estado físico de la señalización turística en el destino?</td>
+                        </tr>
+                        <tr class="hover:bg-orange-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap font-semibold text-gray-700">V10 (INF5)</td>
+                            <td class="px-6 py-4 text-gray-600">¿Qué tan adaptada está la infraestructura pública turística para personas con algún tipo de discapacidad física?</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="flex justify-between">
+                <button onclick="switchTab('resumen')" class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium py-2 px-6 rounded-lg shadow-sm transition"><i class="fa-solid fa-arrow-left mr-2"></i> Atrás</button>
+                <button onclick="switchTab('supuestos')" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg shadow transition">Siguiente: Validar Supuestos <i class="fa-solid fa-arrow-right ml-2"></i></button>
+            </div>
+        </section>
+        
         <section id="tab-supuestos" class="tab-content max-w-6xl mx-auto">
             <div class="mb-8">
                 <!-- Se agregó el ícono temático (Lupa con gráfico) en el título -->
@@ -270,7 +344,7 @@
             </div>
 
             <div class="flex justify-between">
-                <button onclick="switchTab('resumen')" class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium py-2 px-6 rounded-lg shadow-sm transition"><i class="fa-solid fa-arrow-left mr-2"></i> Atrás</button>
+                <button onclick="switchTab('encuesta')" class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium py-2 px-6 rounded-lg shadow-sm transition"><i class="fa-solid fa-arrow-left mr-2"></i> Atrás</button>
                 <button onclick="switchTab('analisis')" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg shadow transition">Siguiente: Cargas Factoriales <i class="fa-solid fa-arrow-right ml-2"></i></button>
             </div>
         </section>
